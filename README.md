@@ -15,7 +15,28 @@ SKILL_URL=https://tuist.dev/skills/migrate/SKILL.md
 
 ## Installation
 
-Each coding agent has its own mechanism for loading skills. Below you will find instructions for the most popular ones. The examples use `$SKILL_NAME` and `$SKILL_URL` variables listed alongside each skill above.
+The recommended way to install skills is with the [`skills`](https://github.com/vercel-labs/skills) CLI. It detects your coding agents automatically and places the `SKILL.md` files in the right location:
+
+```bash
+npx skills add tuist/agent-skills
+```
+
+You can also install a specific skill or target a specific agent:
+
+```bash
+# Install a specific skill
+npx skills add tuist/agent-skills --skill migrate
+
+# Install for a specific agent
+npx skills add tuist/agent-skills -a claude-code
+
+# Install globally
+npx skills add tuist/agent-skills -g
+```
+
+### Manual installation
+
+Each coding agent has its own mechanism for loading skills. If you prefer not to use the `skills` CLI, you can download `SKILL.md` files directly. The examples below use `$SKILL_NAME` and `$SKILL_URL` variables listed alongside each skill above.
 
 ### Claude Code
 
