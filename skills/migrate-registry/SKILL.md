@@ -17,15 +17,17 @@ description: Migrates Swift Package Manager dependencies in Tuist Project.swift 
 ## Quick Start
 
 1. Detect which integration style the project uses (see below).
-2. Enable registry in `Tuist.swift` with `registryEnabled: true`.
-3. Follow the migration path for the detected integration style.
-4. Run `tuist generate --no-open` after each replacement.
-5. Keep the registry ID on success; revert on failure.
-6. Commit the final state with only the successfully migrated packages.
+2. Remove checked-in `.xcworkspace` directories before migration.
+3. Enable registry in `Tuist.swift` with `registryEnabled: true`.
+4. Follow the migration path for the detected integration style.
+5. Run `tuist generate --no-open` after each replacement.
+6. Keep the registry ID on success; revert on failure.
+7. Commit the final state with only the successfully migrated packages.
 
 ## Preflight Checklist
 
 - **Detect integration style** — check where packages are defined (see below)
+- Remove any existing `.xcworkspace` directories tracked in the repo before changing package declarations
 - Confirm `Tuist.swift` exists (not `Config.swift`)
 - Note exact version requirements for each package
 - Ensure `mise` is activated once per session before running `tuist`
@@ -77,7 +79,17 @@ https://github.com/groue/GRDB.swift → groue.GRDB_swift
 
 ## Migration Workflow
 
-### Step 1 — Enable the registry (both styles)
+### Step 1 — Remove existing workspaces
+
+Delete checked-in `.xcworkspace` directories before the migration so Tuist regenerates them from the updated dependency graph.
+
+```bash
+rm -rf *.xcworkspace
+```
+
+If the repo contains nested workspaces, remove those too before continuing.
+
+### Step 2 — Enable the registry (both styles)
 
 Add `registryEnabled: true` to `generationOptions` in `Tuist.swift`. Do **not** create a separate `Config.swift`.
 
@@ -95,13 +107,13 @@ let tuist = Tuist(
 
 Running `tuist generate` automatically creates the registry configuration file.
 
-### Step 2 — Activate mise (once per session)
+### Step 3 — Activate mise (once per session)
 
 ```bash
 eval "$(mise activate bash)"
 ```
 
-### Step 3A — Project.swift-based migration
+### Step 4A — Project.swift-based migration
 
 Replace one `.remote(url:)` entry at a time:
 
@@ -122,7 +134,7 @@ Run `tuist generate --no-open` after each change:
 
 Repeat for every entry across all `Project.swift` files.
 
-### Step 3B — XcodeProj-based migration (`Tuist/Package.swift`)
+### Step 4B — XcodeProj-based migration (`Tuist/Package.swift`)
 
 Two options are available:
 
@@ -160,6 +172,7 @@ Requires a Tuist account with `fullHandle` set in `Tuist.swift`. Commit the gene
 
 - Keep packages in **one place only**: either `Project.swift` or `Tuist/Package.swift`, never both
 - `packages:` in `Project.swift` and dependencies in `Tuist/Package.swift` conflict at generation time
+- Remove stale `.xcworkspace` directories before the first `tuist generate --no-open`
 - Do not run `tuist registry setup` manually — `registryEnabled: true` handles this automatically
 
 ## Common Failure Patterns
@@ -173,6 +186,7 @@ Requires a Tuist account with `fullHandle` set in `Tuist.swift`. Commit the gene
 ## Done Checklist
 
 - `registryEnabled: true` is set in `Tuist.swift`
+- Existing `.xcworkspace` directories were removed before regeneration
 - Every package has been tried for registry migration
 - Successfully migrated packages use `.package(id:, from:)`
 - Packages not on registry remain as `.remote(url:)` in `Project.swift`
