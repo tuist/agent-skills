@@ -1,6 +1,6 @@
 ---
 name: migrate-spm-to-tuist-registry
-description: Migrates Swift Package Manager dependencies in Tuist Project.swift files from .remote(url:) to registry-based .package(id:) format, replacing packages one at a time with build validation after each change. Use when adopting the Tuist registry for an existing project.
+description: Migrates Swift Package Manager dependencies in `Project.swift` or `Tuist/Package.swift` from URL-based declarations to Tuist registry-based package references, validating generation after each change. Use when adopting the Tuist registry for an existing project.
 ---
 
 # Migrate SPM Packages to Tuist Registry
@@ -12,11 +12,11 @@ description: Migrates Swift Package Manager dependencies in Tuist Project.swift 
 | `Project.swift` | `.remote(url: "https://...", requirement: ...)` | `.package(id: "owner.repo", from: "x.y.z")` |
 | `Tuist/Package.swift` | `.package(url: "https://...", from: "x.y.z")` | `.package(id: "owner.repo", from: "x.y.z")` |
 
-> `Project.swift` uses `.remote(url:)`. `Tuist/Package.swift` uses `.package(url:)`. These are different APIs.
+`Project.swift` uses `.remote(url:)`. `Tuist/Package.swift` uses `.package(url:)`.
 
 ## Quick Start
 
-1. Detect which integration style the project uses (see below).
+1. Detect which integration style the project uses.
 2. Remove checked-in `.xcworkspace` directories before migration.
 3. Enable registry in `Tuist.swift` with `registryEnabled: true`.
 4. Follow the migration path for the detected integration style.
@@ -26,7 +26,7 @@ description: Migrates Swift Package Manager dependencies in Tuist Project.swift 
 
 ## Preflight Checklist
 
-- **Detect integration style** — check where packages are defined (see below)
+- Detect integration style
 - Remove any existing `.xcworkspace` directories tracked in the repo before changing package declarations
 - Confirm `Tuist.swift` exists (not `Config.swift`)
 - Note exact version requirements for each package
@@ -34,7 +34,7 @@ description: Migrates Swift Package Manager dependencies in Tuist Project.swift 
 
 ## Detect Integration Style
 
-Before migrating, determine where packages are declared:
+Determine where packages are declared:
 
 **Project.swift-based** — packages live in the `packages:` array of each `Project.swift`:
 ```swift
@@ -56,16 +56,16 @@ let package = Package(
 )
 ```
 
-> A project uses one style only — never both. If `Tuist/Package.swift` has a non-empty `dependencies` array, it is XcodeProj-based. If `Project.swift` files have non-empty `packages:` arrays, it is Project.swift-based.
+A project should use one style only. If `Tuist/Package.swift` has a non-empty `dependencies` array, it is XcodeProj-based. If `Project.swift` files have non-empty `packages:` arrays, it is Project.swift-based.
 
 ## Registry ID Format
 
-Tuist registry uses Swift Package Index as its backend. A package is available only if it exists on Swift Package Index.
+Tuist registry uses Swift Package Index as its backend, so a package must exist there to migrate.
 
 - Format: `{owner}.{repo}` — all lowercase, dots instead of slashes
 - Example: `https://github.com/firebase/firebase-ios-sdk` → `firebase.firebase-ios-sdk`
 
-**Edge case — dots in repo names:** Replace `.` in the repository name with `_`.
+If the repository name contains `.`, replace it with `_`.
 
 ```
 https://github.com/groue/GRDB.swift → groue.GRDB_swift
@@ -74,24 +74,24 @@ https://github.com/groue/GRDB.swift → groue.GRDB_swift
 ## Outputs
 
 - `Tuist.swift` updated with `registryEnabled: true`
-- `Project.swift` files with eligible packages converted to `.package(id:, from:)`
-- Packages not on registry remain as `.remote(url:)`
+- Eligible dependencies migrated to registry-compatible declarations
+- Packages not on the registry left in their original URL-based form
 
 ## Migration Workflow
 
 ### Step 1 — Remove existing workspaces
 
-Delete checked-in `.xcworkspace` directories before the migration so Tuist regenerates them from the updated dependency graph.
+Delete checked-in `.xcworkspace` directories first so Tuist regenerates them from the updated dependency graph.
 
 ```bash
 rm -rf *.xcworkspace
 ```
 
-If the repo contains nested workspaces, remove those too before continuing.
+Remove nested workspaces too, if present.
 
 ### Step 2 — Enable the registry (both styles)
 
-Add `registryEnabled: true` to `generationOptions` in `Tuist.swift`. Do **not** create a separate `Config.swift`.
+Add `registryEnabled: true` to `generationOptions` in `Tuist.swift`. Do not create a separate `Config.swift`.
 
 ```swift
 let tuist = Tuist(
@@ -105,7 +105,7 @@ let tuist = Tuist(
 )
 ```
 
-Running `tuist generate` automatically creates the registry configuration file.
+`tuist generate` creates the registry configuration automatically.
 
 ### Step 3 — Activate mise (once per session)
 
@@ -126,9 +126,9 @@ Replace one `.remote(url:)` entry at a time:
 .package(id: "firebase.firebase-ios-sdk", from: "11.8.1")
 ```
 
-> Use `from:` directly — not `requirement: .upToNextMajor(from:)`.
+Use `from:` directly, not `requirement: .upToNextMajor(from:)`.
 
-Run `tuist generate --no-open` after each change:
+After each change, run `tuist generate --no-open`:
 - **Success** → keep, move to the next package
 - **`package not found on registry`** → revert to `.remote(url:)`, move to the next package
 
@@ -136,15 +136,15 @@ Repeat for every entry across all `Project.swift` files.
 
 ### Step 4B — XcodeProj-based migration (`Tuist/Package.swift`)
 
-Two options are available:
+Use one of these options:
 
-**Option A — explicit `id:` references** (guarantees registry-first resolution):
+**Option A — explicit `id:` references**: guarantees registry-first resolution.
 ```swift
 // Tuist/Package.swift — replace one at a time and validate after each
 .package(id: "firebase.firebase-ios-sdk", from: "11.8.1")
 ```
 
-**Option B — `--replace-scm-with-registry` flag** (keeps URL declarations, resolves from registry automatically when available):
+**Option B — `--replace-scm-with-registry`**: keeps URL declarations and resolves from the registry when available.
 ```swift
 let tuist = Tuist(
     fullHandle: "org/repo",
@@ -156,7 +156,7 @@ let tuist = Tuist(
 )
 ```
 
-> `--replace-scm-with-registry` is **only for XcodeProj-based integration**. It has no effect on `Project.swift` packages.
+`--replace-scm-with-registry` only applies to XcodeProj-based integration. It does not affect `Project.swift` packages.
 
 ## Authentication
 
@@ -166,19 +166,19 @@ Without authentication, the registry allows **1,000 requests per minute per IP**
 tuist registry login
 ```
 
-Requires a Tuist account with `fullHandle` set in `Tuist.swift`. Commit the generated registry configuration file so all team members and CI share the same setup.
+This requires a Tuist account and `fullHandle` in `Tuist.swift`. Commit the generated registry configuration so CI and teammates share the same setup.
 
 ## Important Constraints
 
-- Keep packages in **one place only**: either `Project.swift` or `Tuist/Package.swift`, never both
+- Keep packages in one place only: either `Project.swift` or `Tuist/Package.swift`
 - `packages:` in `Project.swift` and dependencies in `Tuist/Package.swift` conflict at generation time
 - Remove stale `.xcworkspace` directories before the first `tuist generate --no-open`
-- Do not run `tuist registry setup` manually — `registryEnabled: true` handles this automatically
+- Do not run `tuist registry setup` manually; `registryEnabled: true` handles it
 
 ## Common Failure Patterns
 
 - **`no registry configured for '...' scope`**: `registryEnabled: true` is missing from `Tuist.swift`
-- **`package not found on registry`**: package is not on Swift Package Index; revert to `.remote(url:)`
+- **`package not found on registry`**: the package is not on Swift Package Index; revert to the original URL-based declaration
 - **Wrong ID for dotted repo names**: `groue/GRDB.swift` must be `groue.GRDB_swift`, not `groue.GRDB.swift`
 - **`tuist: command not found`**: run `eval "$(mise activate bash)"` first
 - **Generation fails after mixing locations**: packages defined in both `Project.swift` and `Tuist/Package.swift`; pick one and remove the other
@@ -188,7 +188,7 @@ Requires a Tuist account with `fullHandle` set in `Tuist.swift`. Commit the gene
 - `registryEnabled: true` is set in `Tuist.swift`
 - Existing `.xcworkspace` directories were removed before regeneration
 - Every package has been tried for registry migration
-- Successfully migrated packages use `.package(id:, from:)`
-- Packages not on registry remain as `.remote(url:)` in `Project.swift`
+- Successful migrations use registry-compatible package declarations
+- Packages not on the registry remain URL-based
 - Dotted repo names use `_` instead of `.` in the ID
 - `tuist generate --no-open` succeeds cleanly
