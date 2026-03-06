@@ -1,6 +1,6 @@
 ---
 name: migrate-spm-to-tuist-registry
-description: Migrates Swift Package Manager dependencies in `Project.swift` or `Tuist/Package.swift` from URL-based declarations to Tuist registry-based package references, validating generation after each change. Use when adopting the Tuist registry for an existing project.
+description: Migrates Swift Package Manager dependencies in Project.swift or Tuist/Package.swift from URL-based declarations to Tuist registry-based package references, validating generation after each change. Use when adopting the Tuist registry for an existing project.
 ---
 
 # Migrate SPM Packages to Tuist Registry
